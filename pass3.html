@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0f14" />
+  <title>Cipher & Clue | Detective + Hacking Terminal</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    :root{
+      --bg:#0a0f14;
+      --bg-2:#0d141b;
+      --card:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.10);
+      --primary:#58ffd7;
+      --accent:#8a5cff;
+      --accent-2:#23a6d5;
+      --warning:#ff4d6d;
+      --ok:#6dff7d;
+      --text:#e6f4ff;
+      --muted:#8aa1b4;
+      --shadow:0 10px 30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.05);
+      --radius:16px;
+      --radius-sm:12px;
+      --radius-lg:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(120vh 120vh at 80% -10%, #101729 0%, var(--bg) 55%),
+        radial-gradient(110vh 110vh at -10% 120%, #0f1623 0%, var(--bg) 55%),
+        linear-gradient(180deg, #0a0f14 0%, #070b0f 100%);
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.5;
+      overflow-x:hidden;
+    }
+
+    /* Subtle grid overlay */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 80px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 80px);
+      mix-blend-mode:overlay;
+      pointer-events:none;
+      z-index:1;
+    }
+    /* Scanlines */
+    body::after{
+      content:"";
+      position:fixed; inset:0;
+      background: linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 100% 3px;
+      opacity:0.15;
+      mix-blend-mode:soft-light;
+      pointer-events:none;
+      z-index:1;
+      animation:sl 12s linear infinite;
+    }
+    @keyframes sl{to{background-position-y:-600px}}
+
+    /* Matrix canvas */
+    #matrix{
+      position:fixed; inset:0;
+      width:100%; height:100%;
+      z-index:0;
+      opacity:0.25;
+      filter:contrast(120%) saturate(110%) drop-shadow(0 0 8px #00ffd5);
+    }
+
+    header{
+      position:sticky; top:0; z-index:5;
+      background:linear-gradient(180deg, rgba(10,15,20,0.8), rgba(10,15,20,0.4) 60%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--border);
+    }
+    .nav{
+      max-width:1200px; margin:0 auto; padding:16px 20px; display:flex; align-items:center; gap:14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--text);
+    }
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background:conic-gradient(from 180deg at 50% 50%, var(--primary), var(--accent), var(--accent-2), var(--primary));
+      box-shadow:0 0 0 2px rgba(255,255,255,0.06), 0 10px 30px rgba(88,255,215,0.2), inset 0 0 40px rgba(138,92,255,0.35);
+      position:relative; overflow:hidden;
+    }
+    .logo::after{
+      content:""; position:absolute; inset:0; background:
+        radial-gradient(80px 80px at 30% 30%, rgba(255,255,255,0.3), transparent 40%),
+        radial-gradient(60px 60px at 70% 70%, rgba(255,255,255,0.2), transparent 45%);
+      mix-blend-mode:overlay;
+    }
+    .brand span{font-weight:800; letter-spacing:0.3px}
+    nav ul{display:flex; gap:16px; list-style:none; margin:0; padding:0}
+    nav a{
+      color:var(--muted); text-decoration:none; font-weight:600; font-size:14px; padding:8px 10px; border-radius:10px;
+    }
+    nav a:hover{color:var(--text); background-color:rgba(255,255,255,0.05)}
+    .lock-btn{
+      margin-left:auto; display:inline-flex; align-items:center; gap:8px;
+      padding:10px 14px; border-radius:12px; border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      color:var(--text); cursor:pointer; font-weight:700;
+      box-shadow: var(--shadow);
+    }
+    .lock-btn:hover{transform:translateY(-1px)}
+    .lock-btn svg{opacity:0.8}
+
+    .hero{
+      max-width:1200px; margin:28px auto 0; padding:24px 20px 10px;
+      display:grid; grid-template-columns:1.1fr 0.9fr; gap:24px; align-items:center;
+    }
+    .hero h1{
+      font-size:clamp(28px, 4vw, 48px); line-height:1.05; margin:0 0 10px;
+      letter-spacing:0.2px;
+      background:linear-gradient(90deg, #e6f4ff, #b9f9ea 35%, #d1c5ff 55%, #e6f4ff);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+      text-shadow:0 0 30px rgba(88,255,215,0.08);
+    }
+    .hero p{color:var(--muted); margin:0 0 16px; max-width:55ch}
+    .cta{
+      display:flex; gap:12px; flex-wrap:wrap;
+    }
+    .btn{
+      padding:12px 16px; border-radius:12px; font-weight:700; border:1px solid var(--border);
+      color:var(--text); cursor:pointer;
+      background:
+        radial-gradient(120% 120% at 10% 0%, rgba(255,255,255,0.12), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      box-shadow: var(--shadow);
+    }
+    .btn-primary{
+      border-color: rgba(88,255,215,0.35);
+      background:
+        radial-gradient(200% 200% at 0% 0%, rgba(88,255,215,0.25), transparent 40%),
+        linear-gradient(180deg, rgba(14,95,83,0.45), rgba(14,95,83,0.15));
+      color:#0b2d27;
+      text-shadow:0 1px 0 rgba(255,255,255,0.3);
+    }
+    .btn-primary span{color:#04201b}
+    .btn-primary:hover{filter:brightness(1.06)}
+    .statbar{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px;
+    }
+    .stat{
+      padding:14px; border-radius:14px; border:1px solid var(--border); background:var(--card);
+      box-shadow: var(--shadow);
+      display:flex; align-items:center; gap:10px;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:12px; font-weight:700;
+      padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,0.04)
+    }
+    .chip.ok{color:var(--ok); border-color:rgba(109,255,125,0.3)}
+    .chip.warn{color:#ffd86d; border-color:rgba(255,216,109,0.35)}
+    .chip.err{color:var(--warning); border-color:rgba(255,77,109,0.4)}
+
+    .panel{
+      max-width:1200px; margin:18px auto; padding:0 20px; display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    }
+    .card{
+      border:1px solid var(--border); background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+      overflow:hidden; position:relative;
+    }
+    .card h3{
+      margin:0; padding:16px 16px 8px; font-size:18px; letter-spacing:0.3px;
+    }
+    .evidence{
+      display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; padding:16px;
+    }
+    .evi{
+      border:1px dashed rgba(255,255,255,0.18); padding:12px; border-radius:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      transition:transform 0.2s ease, box-shadow 0.2s ease;
+      cursor:pointer; position:relative;
+    }
+    .evi:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.28)}
+    .evi h4{margin:0 0 6px; font-size:14px}
+    .evi p{margin:0; color:var(--muted); font-size:13px}
+    .evi .tag{position:absolute; top:10px; right:10px; font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#9dc3ff; background:rgba(60,110,255,0.08)}
+    .hidden-note{display:none; margin-top:8px; font-family:'JetBrains Mono', monospace; color:#b0ffe6; font-size:12px}
+    .evi.open .hidden-note{display:block}
+
+    /* Console */
+    .console{
+      display:grid; grid-template-rows:auto 300px auto; padding:16px; gap:10px;
+    }
+    .console .bar{
+      display:flex; align-items:center; justify-content:space-between; padding:10px 12px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-bottom:1px solid var(--border);
+    }
+    .terminal{
+      font-family:'JetBrains Mono', monospace; font-size:13px;
+      background:radial-gradient(120% 120% at 0% 0%, rgba(88,255,215,0.07), transparent 50%), #06090d;
+      color:#b8f7ee;
+      border:1px solid var(--border);
+      border-radius:12px; padding:12px; overflow:auto; min-height:300px; max-height:380px;
+      box-shadow:inset 0 0 0 1px rgba(88,255,215,0.08);
+    }
+    .tline{margin:0; white-space:pre-wrap}
+    .prompt{
+      display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.04);
+      border:1px solid var(--border); border-radius:12px; padding:8px 10px;
+    }
+    .prompt label{color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:12px}
+    .prompt input{
+      flex:1; background:transparent; border:0; outline:none; color:var(--text); font-family:'JetBrains Mono', monospace; font-size:13px;
+    }
+
+    footer{
+      max-width:1200px; margin:24px auto 80px; padding:0 20px; text-align:center; color:var(--muted);
+    }
+
+    /* Lock screen */
+    #lockscreen{
+      position:fixed; inset:0; z-index:10;
+      display:grid; place-items:center;
+      background:
+        radial-gradient(120% 120% at 100% -10%, rgba(138,92,255,0.18), transparent 45%),
+        radial-gradient(120% 120% at -10% 110%, rgba(88,255,215,0.18), transparent 45%),
+        rgba(4, 10, 14, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition:transform 700ms cubic-bezier(.2,.9,.2,1), opacity 500ms ease;
+    }
+    body.unlocked #lockscreen{
+      transform:translateY(-110%);
+      opacity:0;
+      pointer-events:none;
+    }
+    .lock-card{
+      width:min(520px, 92vw);
+      border:1px solid var(--border);
+      background:
+        radial-gradient(160% 160% at 0% 0%, rgba(255,255,255,0.08), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow), 0 20px 50px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    .lock-head{
+      display:flex; align-items:center; gap:12px; padding:16px 16px 10px; border-bottom:1px solid var(--border);
+    }
+    .lock-head .badge{
+      font-family:'JetBrains Mono', monospace; font-size:11px; color:#0b2d27; background:linear-gradient(180deg, #6fffe1, #46c8ad);
+      border:1px solid rgba(0,0,0,0.2); padding:6px 10px; border-radius:999px; font-weight:800; letter-spacing:0.4px;
+    }
+    .lock-body{padding:16px}
+    .lock-body p{color:var(--muted); margin:10px 0 14px}
+    .field{
+      display:flex; flex-direction:column; gap:8px; margin:8px 0 6px;
+    }
+    .field label{font-weight:700; font-size:14px}
+    .input-wrap{
+      display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(88,255,215,0.35);
+      background:linear-gradient(180deg, rgba(14,95,83,0.35), rgba(14,95,83,0.12));
+      box-shadow:inset 0 0 0 1px rgba(88,255,215,0.15), 0 10px 20px rgba(0,0,0,0.25);
+    }
+    .input-wrap input{
+      flex:1; background:transparent; border:0; outline:none; color:#eafff9; font-family:'JetBrains Mono', monospace; font-size:16px; letter-spacing:1px;
+    }
+    .input-wrap button{
+      background:rgba(0,0,0,0.2); color:#aefce9; border:1px solid rgba(88,255,215,0.3);
+      border-radius:10px; padding:8px 10px; cursor:pointer; font-weight:700;
+    }
+    .input-wrap button:hover{filter:brightness(1.1)}
+    .caps{font-family:'JetBrains Mono', monospace; font-size:12px; color:#ffd86d; display:none}
+    .caps.on{display:inline}
+    .helper{display:flex; align-items:center; gap:10px; justify-content:space-between; margin-top:8px}
+    .hint{font-size:12px; color:var(--muted)}
+    .hint-btn{
+      color:#bfb7ff; border:0; background:transparent; text-decoration:underline; cursor:pointer; font-weight:700; padding:4px 0;
+    }
+    .error{
+      display:none; margin-top:10px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,77,109,0.5);
+      background:rgba(255,77,109,0.08); color:#ff9aaa; font-family:'JetBrains Mono', monospace; font-size:12px;
+    }
+    .error.show{display:block; animation:shake 320ms ease}
+    @keyframes shake{
+      10%{transform:translateX(-2px)} 30%{transform:translateX(3px)} 50%{transform:translateX(-3px)} 70%{transform:translateX(2px)} 100%{transform:translateX(0)}
+    }
+    .actions{display:flex; gap:10px; margin-top:12px}
+    .act{
+      flex:1; padding:12px 14px; border-radius:12px; font-weight:800; cursor:pointer;
+      border:1px solid var(--border); color:var(--text);
+      background:
+        radial-gradient(140% 140% at 0% 0%, rgba(138,92,255,0.25), transparent 45%),
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    }
+    .act-primary{
+      border-color:rgba(88,255,215,0.5);
+      background:
+        radial-gradient(200% 200% at 0% 0%, rgba(88,255,215,0.35), transparent 55%),
+        linear-gradient(180deg, rgba(14,95,83,0.55), rgba(14,95,83,0.2));
+      color:#052b23;
+    }
+    .meta{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
+    .meta .chip{background:rgba(0,0,0,0.25)}
+
+    /* Responsive */
+    @media (max-width: 960px){
+      .hero{grid-template-columns:1fr}
+      .panel{grid-template-columns:1fr}
+      .evidence{grid-template-columns:1fr}
+      .statbar{grid-template-columns:1fr}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; scroll-behavior:auto !important}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix" aria-hidden="true"></canvas>
+
+  <div id="lockscreen" role="dialog" aria-labelledby="lockTitle" aria-modal="true">
+    <div class="lock-card">
+      <div class="lock-head">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="badge">Access Terminal</div>
+          <div id="lockTitle" style="font-weight:800; margin-top:6px; letter-spacing:0.3px;">Detective Clearance Required</div>
+        </div>
+      </div>
+      <form class="lock-body" id="lockForm" autocomplete="off">
+        <p>Enter the operation passphrase. Case-sensitive (A–Z). Minimum: must contain at least one letter.</p>
+        <div class="field">
+          <label for="pass">Passphrase</label>
+          <div class="input-wrap">
+            <span style="font-family:'JetBrains Mono', monospace; color:#aefce9">▶</span>
+            <input id="pass" name="pass" type="password" inputmode="text" autocomplete="new-password" spellcheck="false" placeholder="Type your passphrase..." aria-describedby="capsTip" required />
+            <button type="button" id="toggleType" aria-pressed="false" aria-label="Show password">SHOW</button>
+          </div>
+          <div class="helper">
+            <span id="capsTip" class="caps">Caps Lock is ON</span>
+            <span class="hint">Need a hint? <button type="button" class="hint-btn" id="hintToggle" aria-expanded="false" aria-controls="hintText">Reveal</button></span>
+          </div>
+          <div id="hintText" class="error" style="display:none; border-color:rgba(138,92,255,0.5); background:rgba(138,92,255,0.08); color:#d9c9ff">
+            Demo password: CipherWolf
+          </div>
+          <div id="err" class="error" role="alert"></div>
+        </div>
+        <div class="actions">
+          <button class="act" type="button" id="genNoise">Scramble</button>
+          <button class="act act-primary" type="submit">Unlock</button>
+        </div>
+        <div class="meta">
+          <span class="chip warn" id="attempts">Attempts: 0</span>
+          <span class="chip">Mode: CASE-SENSITIVE</span>
+          <span class="chip" id="timeBadge"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <header>
+    <div class="nav">
+      <a href="#" class="brand" aria-label="Cipher & Clue Home">
+        <div class="logo" aria-hidden="true"></div>
+        <span>Cipher & Clue</span>
+      </a>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="#evidence">Evidence</a></li>
+          <li><a href="#console">Console</a></li>
+          <li><a href="#about">Brief</a></li>
+        </ul>
+      </nav>
+      <button class="lock-btn" id="relock">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 10V7a5 5 0 0110 0v3" stroke="#a7c0d6" stroke-width="1.5"/><rect x="4" y="10" width="16" height="10" rx="2" stroke="#a7c0d6" stroke-width="1.5"/></svg>
+        Relock
+      </button>
+    </div>
+  </header>
+
+  <main id="app" aria-live="polite">
+    <section class="hero">
+      <div>
+        <h1>Operation Nightfall: Trace, Decode, Resolve.</h1>
+        <p>Assemble clues like a detective. Breach data like a hacker. Cross-reference logs, decrypt ciphers, and unveil the perpetrator. All actions are monitored — proceed with precision.</p>
+        <div class="cta">
+          <button class="btn btn-primary" onclick="document.getElementById('console').scrollIntoView({behavior:'smooth'})">
+            <span>Open Secure Console</span>
+          </button>
+          <button class="btn" onclick="document.getElementById('evidence').scrollIntoView({behavior:'smooth'})">Review Evidence</button>
+        </div>
+        <div class="statbar">
+          <div class="stat"><span class="chip ok">Signals: <span id="sigCount">0</span></span></div>
+          <div class="stat"><span class="chip warn">Hashes Parsed: <span id="hashCount">0</span></span></div>
+          <div class="stat"><span class="chip err">Threats Flagged: <span id="threatCount">0</span></span></div>
+        </div>
+      </div>
+      <div class="card" aria-hidden="true">
+        <svg viewBox="0 0 600 360" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#58ffd7"/><stop offset="100%" stop-color="#8a5cff"/>
+            </linearGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="6" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="600" height="360" fill="url(#g1)" opacity="0.08"/>
+          <g filter="url(#glow)">
+            <path d="M40,260 C120,140 220,200 300,120 S470,90 560,160" fill="none" stroke="url(#g1)" stroke-width="3"/>
+            <circle cx="300" cy="120" r="4" fill="#58ffd7"/>
+            <circle cx="470" cy="90" r="3" fill="#8a5cff"/>
+            <circle cx="120" cy="140" r="3" fill="#58ffd7"/>
+          </g>
+          <g fill="#a7c0d6" opacity="0.7" font-family="JetBrains Mono, monospace" font-size="10">
+            <text x="28" y="42">[NODE: HQ]</text>
+            <text x="430" y="60">[NODE: GATE]</text>
+            <text x="260" y="220">[TUNNEL: ACTIVE]</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section id="evidence" class="panel" aria-label="Evidence Board">
+      <div class="card">
+        <h3>Evidence Board</h3>
+        <div class="evidence">
+          <div class="evi" tabindex="0" role="button" aria-pressed="false">
+            <span class="tag">LOG</span>
+            <h4>Server Access Log</h4>
+            <p>Three failed attempts followed by a precision hit.</p>
+            <div class="hidden-note">tail -n 50 /var/log/auth.log | grep "Accepted password"</div>
+          </div>
+          <div class="evi" tabindex="0" role="button" aria-pressed="false">
+            <span class="tag">DOC</span>
+            <h4>Rendezvous Note</h4>
+            <p>An acrostic highlighting C and W characters.</p>
+            <div class="hidden-note">Cipher + Wolf — case matters.</div>
+          </div>
+          <div class="evi unimportant" data-important="false" tabindex="0" role="button" aria-pressed="false">
+            <span class="tag">IMG</span>
+            <h4>Camera Frame</h4>
+            <p>Subject carrying a vintage briefcase.</p>
+            <div class="hidden-note">EXIF anomaly: TZ offset -0300; device spoofed.</div>
+          </div>
+          <div class="evi unimportant" data-important="false" tabindex="0" role="button" aria-pressed="false">
+            <span class="tag">SIG</span>
+            <h4>Radio Burst</h4>
+            <p>Short-burst packets on 433 MHz.</p>
+            <div class="hidden-note">Hamming(7,4) parity pattern matches.</div>
+          </div>
+        </div>
+      </div>
+      <div id="console" class="card" aria-label="Secure Console">
+        <div class="console">
+          <div class="bar">
+            <div class="chip">/dev/ops/secure</div>
+            <div class="chip ok" id="statusChip">STATUS: UNLOCKED</div>
+          </div>
+          <div id="terminal" class="terminal" aria-live="polite"></div>
+          <div class="prompt">
+            <label for="cmd">❯</label>
+            <input id="cmd" type="text" placeholder="help · scan · trace · whoami · case · clear" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="panel" style="grid-template-columns:1fr;">
+      <div class="card" style="padding:16px;">
+        <h3>Briefing</h3>
+        <p style="color:var(--muted); max-width:70ch">
+          You are embedded as lead investigator. Cross-link digital traces and physical evidence. The console simulates system utilities to assist your deduction. Proceed.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © <span id="year"></span> Cipher & Clue — For training and demo purposes. Case-sensitive pass system enabled.
+  </footer>
+
+  <script>
+    ;(function(){
+      const $ = (s,ctx=document)=>ctx.querySelector(s);
+      const $$ = (s,ctx=document)=>Array.from(ctx.querySelectorAll(s));
+
+      // Matrix rain
+      const canvas = document.getElementById('matrix');
+      const ctx = canvas.getContext('2d');
+      let w,h,cols,drops,chars;
+      function resize(){
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        canvas.width = Math.floor(innerWidth * dpr);
+        canvas.height = Math.floor(innerHeight * dpr);
+        canvas.style.width = innerWidth + 'px';
+        canvas.style.height = innerHeight + 'px';
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        w = innerWidth; h = innerHeight;
+        const fontSize = 14;
+        cols = Math.ceil(w / fontSize);
+        drops = new Array(cols).fill(0).map(()=>Math.floor(Math.random()*h / fontSize));
+        ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
+        chars = '01ΛΣΞΦΨЖБГДИЙКЛПФЧШЩЪЫЭЮЯabcdefABCDEF0123456789▌▐░▒▓█'.split('');
+      }
+      window.addEventListener('resize', resize);
+      resize();
+      function rain(){
+        ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,w,h);
+        for(let i=0;i<cols;i++){
+          const char = chars[(Math.random()*chars.length)|0];
+          const x = i * 14;
+          const y = drops[i] * 14;
+          ctx.fillStyle = Math.random()<0.03 ? '#8a5cff' : '#58ffd7';
+          ctx.fillText(char, x, y);
+          if (y > h && Math.random() > 0.975) drops[i] = 0; else drops[i]++;
+        }
+        requestAnimationFrame(rain);
+      }
+      rain();
+
+      // Lock system
+      const PASSWORD = 'CipherWolf'; // Case-sensitive
+      const form = $('#lockForm');
+      const pass = $('#pass');
+      const err = $('#err');
+      const attempts = $('#attempts');
+      const toggleType = $('#toggleType');
+      const hintToggle = $('#hintToggle');
+      const hintText = $('#hintText');
+      const relock = $('#relock');
+      const statusChip = $('#statusChip');
+      const timeBadge = $('#timeBadge');
+      const body = document.body;
+      let attemptCount = 0;
+
+      function setTime(){
+        const dt = new Date();
+        timeBadge.textContent = 'UTC ' + dt.toISOString().replace('T',' ').replace(/\..+/,'');
+      }
+      setTime(); setInterval(setTime, 1000);
+
+      function setAttempts(v){
+        attemptCount = v;
+        attempts.textContent = 'Attempts: ' + attemptCount;
+        attempts.className = 'chip ' + (attemptCount === 0 ? 'warn' : attemptCount > 4 ? 'err' : 'warn');
+      }
+      setAttempts(0);
+
+      function beep(freq=480, duration=120, type='sine', vol=0.04){
+        try{
+          const ac = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ac.createOscillator(); const g = ac.createGain();
+          o.type = type; o.frequency.value = freq;
+          g.gain.setValueAtTime(vol, ac.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime + duration/1000);
+          o.connect(g).connect(ac.destination);
+          o.start(); o.stop(ac.currentTime + duration/1000 + 0.02);
+          setTimeout(()=>ac.close(), duration+200);
+        }catch(e){}
+      }
+
+      function unlock(){
+        body.classList.add('unlocked');
+        statusChip.textContent = 'STATUS: UNLOCKED';
+        statusChip.className = 'chip ok';
+        err.classList.remove('show');
+        beep(760,120,'triangle',0.05);
+        setTimeout(()=>beep(980,100,'triangle',0.05), 120);
+        $('#cmd').focus();
+        localStorage.setItem('cc_unlocked','1');
+      }
+      
+      // Remove unimportant evidence items (animated) — triggered by special pass 'ABCD'
+      function removeUnimportant(){
+        const items = $$('.evi.unimportant');
+        items.forEach(el=>{
+          el.style.transition = 'opacity 300ms ease, transform 300ms ease';
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-8px)';
+          setTimeout(()=>{ if(el && el.parentNode) el.parentNode.removeChild(el); }, 320);
+        });
+      }
+      function lock(){
+        body.classList.remove('unlocked');
+        statusChip.textContent = 'STATUS: LOCKED';
+        statusChip.className = 'chip err';
+        pass.value = '';
+        err.classList.remove('show');
+        localStorage.removeItem('cc_unlocked');
+      }
+
+      // Persist demo state
+      if(localStorage.getItem('cc_unlocked')==='1'){ unlock(); }
+
+      toggleType.addEventListener('click', ()=>{
+        const show = pass.type === 'password';
+        pass.type = show ? 'text' : 'password';
+        toggleType.textContent = show ? 'HIDE' : 'SHOW';
+        toggleType.setAttribute('aria-pressed', String(show));
+        pass.focus();
+      });
+
+      hintToggle.addEventListener('click', ()=>{
+        const vis = hintText.style.display !== 'none';
+        hintText.style.display = vis ? 'none' : 'block';
+        hintToggle.setAttribute('aria-expanded', String(!vis));
+      });
+
+      pass.addEventListener('keydown', (e)=>{
+        const cap = e.getModifierState && e.getModifierState('CapsLock');
+        $('.caps').classList.toggle('on', !!cap);
+      });
+      pass.addEventListener('keyup', (e)=>{
+        const cap = e.getModifierState && e.getModifierState('CapsLock');
+        $('.caps').classList.toggle('on', !!cap);
+      });
+
+      form.addEventListener('submit',(e)=>{
+        e.preventDefault();
+        const val = pass.value || '';
+        const hasLetter = /[A-Za-z]/.test(val);
+        // special shortcut: entering exactly 'ABCD' removes unimportant items and unlocks
+        if(val === 'ABCD'){
+          removeUnimportant();
+          unlock();
+          setAttempts(attemptCount + 1);
+          return;
+        }
+        if(!hasLetter){
+          err.textContent = 'Invalid format: include at least one letter (A–Z).';
+          err.classList.add('show');
+          beep(220,120,'sawtooth',0.06);
+          setAttempts(attemptCount+1);
+          return;
+        }
+        if(val === PASSWORD){
+          unlock();
+        }else{
+          err.textContent = 'Access denied. Case-sensitive. Trace logged.';
+          err.classList.add('show');
+          setAttempts(attemptCount+1);
+          // descending dual beep
+          beep(420,120,'square',0.05);
+          setTimeout(()=>beep(260,160,'square',0.05), 120);
+        }
+      });
+
+      $('#genNoise').addEventListener('click', ()=>{
+        const pool = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+        pass.value = Array.from({length: 10}, ()=>pool[(Math.random()*pool.length)|0]).join('');
+        err.classList.remove('show');
+        beep(620,80,'sine',0.04);
+      });
+      relock.addEventListener('click', lock);
+
+      // Evidence toggles
+      $$('.evi').forEach(card=>{
+        const toggle = ()=>{ card.classList.toggle('open'); card.setAttribute('aria-pressed', String(card.classList.contains('open'))); };
+        card.addEventListener('click', toggle);
+        card.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); toggle(); }});
+      });
+
+      // Terminal
+      const term = $('#terminal');
+      const cmd = $('#cmd');
+      let history = [], hIndex = -1;
+
+      function tprint(line='', cls=''){
+        const p = document.createElement('div'); p.className='tline '+cls; p.textContent = line;
+        term.appendChild(p); term.scrollTop = term.scrollHeight;
+      }
+      function banner(){
+        tprint('--- Cipher&Clue Secure Console ---');
+        tprint('Type "help" to list commands. Case-sensitive password enforced at entry.');
+        tprint('');
+      }
+      banner();
+
+      function process(input){
+        const c = input.trim();
+        if(!c) return;
+        switch(c){
+          case 'help':
+            return [
+              'help         Show this message',
+              'scan         Quick system scan',
+              'trace        Attempt network backtrace',
+              'whoami       Current investigator',
+              'case         Show case status',
+              'clear        Clear terminal',
+              'hint         Show passphrase hint'
+            ];
+          case 'scan':
+            return ['[SCAN] Hashing evidence...', '[SCAN] Correlation complete: 3 matches', '[OK] No malware found'];
+          case 'trace':
+            return ['[TRACE] Initiating...', '[TRACE] Hop 1 ▸ 10.0.4.1', '[TRACE] Hop 2 ▸ 172.16.2.7', '[TRACE] Hop 3 ▸ 185.199.109.153', '[WARN] Proxy chain detected'];
+          case 'whoami':
+            return ['investigator@cipher&clue','role: lead detective','auth: UNLOCKED'];
+          case 'case':
+            return ['Case: Nightfall','Status: Active','Next step: review "Rendezvous Note" and decode'];
+          case 'hint':
+            return ['Hint: Codename merges "Cipher" + "Wolf". Case matters.'];
+          case 'clear':
+            term.innerHTML=''; return [];
+          default:
+            return ['Command not found: '+c, 'Try "help"'];
+        }
+      }
+
+      cmd.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){
+          const val = cmd.value;
+          if(!val.trim()) return;
+          tprint('❯ '+val, 'in');
+          const out = process(val);
+          out.forEach(l=>tprint(l));
+          history.unshift(val); hIndex = -1; cmd.value='';
+        }else if(e.key === 'ArrowUp'){
+          if(history.length){ hIndex = Math.min(hIndex+1, history.length-1); cmd.value = history[hIndex] || ''; setTimeout(()=>cmd.setSelectionRange(cmd.value.length, cmd.value.length),0); }
+          e.preventDefault();
+        }else if(e.key === 'ArrowDown'){
+          if(history.length){ hIndex = Math.max(hIndex-1, -1); cmd.value = history[hIndex] || ''; setTimeout(()=>cmd.setSelectionRange(cmd.value.length, cmd.value.length),0); }
+          e.preventDefault();
+        }
+      });
+
+      // Fun counters
+      const sig = $('#sigCount'), hash = $('#hashCount'), thr = $('#threatCount');
+      let s=0,hc=0,t=0;
+      setInterval(()=>{ if(s<128) sig.textContent = ++s; }, 250);
+      setInterval(()=>{ if(hc<512) hash.textContent = hc+=4; }, 160);
+      setInterval(()=>{ if(t<9) thr.textContent = ++t; }, 1300);
+
+      // Focus handling after unlock
+      if(body.classList.contains('unlocked')) $('#cmd').focus();
+
+      // Accessibility: focus first input in lock
+      if(!body.classList.contains('unlocked')) { setTimeout(()=>pass.focus(), 100); }
+
+      // Dismiss error on input
+      pass.addEventListener('input', ()=>err.classList.remove('show'));
+    })();
+  </script>
+</body>
+</html>
